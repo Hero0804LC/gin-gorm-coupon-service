@@ -24,10 +24,15 @@ func NewUserService(userRepo UserRepo) *UserService {
 
 // SendCode 发送短信验证码
 func (s *UserService) SendCode(ctx context.Context, phone string) error {
+	existCode, err := cache.GetCode(ctx, phone)
+	if err == nil && existCode != "" {
+		// 已存在有效验证码
+		return fmt.Errorf("验证码已发送，请稍后再试")
+	}
 	//生成 6 位验证码
 	code := generateCode()
 	//存入Redis
-	err := cache.SetCode(ctx, phone, code, 5*time.Minute)
+	err = cache.SetCode(ctx, phone, code, 5*time.Minute)
 	if err != nil {
 		return fmt.Errorf("保存验证码失败")
 	}

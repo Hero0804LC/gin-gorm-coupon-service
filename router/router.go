@@ -10,7 +10,8 @@ func SetupRouter(userHandler *handler.UserHandler) *gin.Engine {
 	r.SetTrustedProxies(nil)
 	userGroup := r.Group("/api/user")
 	{
-		userGroup.POST("/send-code", userHandler.SendCode)
+		userGroup.POST("/send-code", userHandler.SendCode) //发送验证码
+		userGroup.POST("/register", userHandler.Register)  //用户注册
 	}
 
 	return r

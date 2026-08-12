@@ -12,6 +12,7 @@ func SetupRouter(userHandler *handler.UserHandler) *gin.Engine {
 	{
 		userGroup.POST("/send-code", userHandler.SendCode) //发送验证码
 		userGroup.POST("/register", userHandler.Register)  //用户注册
+		userGroup.POST("/login", userHandler.Login)        //用户登录
 	}
 
 	return r

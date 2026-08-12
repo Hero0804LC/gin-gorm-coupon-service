@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"gin-gorm-coupon-service/internal/user/model"
 	"gorm.io/gorm"
@@ -10,6 +11,7 @@ import (
 type UserRepo interface {
 	CreateUser(ctx context.Context, user *model.User) error
 	UserExists(ctx context.Context, username, phone string) (bool, error)
+	GetByPhone(ctx context.Context, phone string) (*model.User, error)
 }
 
 type userRepo struct {
@@ -37,4 +39,17 @@ func (r *userRepo) UserExists(ctx context.Context, username, phone string) (bool
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// GetByPhone 根据手机号查用户
+func (r *userRepo) GetByPhone(ctx context.Context, phone string) (*model.User, error) {
+	var user model.User
+	err := r.db.WithContext(ctx).
+		Where("phone = ?", phone).
+		First(&user).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &user, err
 }

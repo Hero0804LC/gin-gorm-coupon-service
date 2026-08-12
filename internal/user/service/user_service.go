@@ -14,6 +14,7 @@ import (
 type UserRepo interface {
 	CreateUser(ctx context.Context, user *model.User) error
 	UserExists(ctx context.Context, username, phone string) (bool, error)
+	GetByPhone(ctx context.Context, phone string) (*model.User, error)
 }
 
 // UserService 业务逻辑层
@@ -24,6 +25,23 @@ type UserService struct {
 // NewUserService 构造函数
 func NewUserService(userRepo UserRepo) *UserService {
 	return &UserService{userRepo: userRepo}
+}
+
+// Login 用户登录
+func (s *UserService) Login(ctx context.Context, phone, password string) error {
+	//查用户
+	user, err := s.userRepo.GetByPhone(ctx, phone)
+	if err != nil {
+		return fmt.Errorf("查询用户失败")
+	}
+	if user == nil {
+		return fmt.Errorf("用户不存在")
+	}
+	//校验密码
+	if err := crypt.Check(user.Password, password); err != nil {
+		return fmt.Errorf("密码错误")
+	}
+	return nil
 }
 
 // Register 用户注册

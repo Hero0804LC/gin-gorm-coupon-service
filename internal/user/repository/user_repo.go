@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"errors"
+
 	"gorm.io/gorm"
 )
 
@@ -13,23 +15,47 @@ func NewUserRepo(db *gorm.DB) *UserRepo {
 	return &UserRepo{db: db}
 }
 
-// 创建用户
+// CreateUser 创建用户
 func (r *UserRepo) CreateUser(ctx context.Context, user *User) error {
 	return r.db.WithContext(ctx).Create(user).Error
 }
 
-// 根据用户名或手机号查用户
-func (r *UserRepo) GetByUsernameOrPhone(ctx context.Context, username, phone string) (*User, error) {
+// GetByPhone 根据手机号查询用户
+func (r *UserRepo) GetByPhone(ctx context.Context, phone string) (*User, error) {
 	var user User
 	err := r.db.WithContext(ctx).
-		Where("username = ? OR phone = ?", username, phone).
+		Where("phone = ?", phone).
 		First(&user).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	return &user, err
 }
 
-// 根据 ID 查用户
-func (r *UserRepo) GetByID(ctx context.Context, id uint64) (*User, error) {
+// GetByUsername 根据用户名查询用户
+func (r *UserRepo) GetByUsername(ctx context.Context, username string) (*User, error) {
 	var user User
-	err := r.db.WithContext(ctx).First(&user, id).Error
+	err := r.db.WithContext(ctx).
+		Where("username = ?", username).
+		First(&user).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
 	return &user, err
+}
+
+// UserExists 判断用户名或手机号是否已存在
+func (r *UserRepo) UserExists(ctx context.Context, username, phone string) (bool, error) {
+	var count int64
+	err := r.db.WithContext(ctx).
+		Model(&User{}).
+		Where("username = ? OR phone = ?", username, phone).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

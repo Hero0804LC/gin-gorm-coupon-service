@@ -3,35 +3,41 @@ package redis
 import (
 	"context"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"time"
+
+	"gin-gorm-coupon-service/config"
+
+	"github.com/redis/go-redis/v9"
 )
 
+// Client 全局 Redis 客户端
 var Client *redis.Client
 
-// Init 初始化 Redis 连接
-func Init(addr, password string, db int) error {
+// Init 初始化 Redis
+func Init() error {
+	cfg := config.Get().Redis
+
 	Client = redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       db,
-		PoolSize: 10,
+		Addr:     cfg.Addr,
+		Password: cfg.Password,
+		DB:       cfg.DB,
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := Client.Ping(ctx).Result()
-	if err != nil {
-		return fmt.Errorf("redis connect failed: %w", err)
+	if err := Client.Ping(ctx).Err(); err != nil {
+		return fmt.Errorf("redis ping failed: %w", err)
 	}
 
 	return nil
 }
 
-// Close 关闭连接
+// Close 关闭 Redis 连接
 func Close() {
 	if Client != nil {
-		Client.Close()
+		if err := Client.Close(); err != nil {
+			fmt.Println("redis close error:", err)
+		}
 	}
 }

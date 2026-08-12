@@ -2,22 +2,21 @@ package cache
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"gin-gorm-coupon-service/internal/pkg/redis"
 )
 
-// 存验证码，5分钟过期
-func SetCode(phone, code string) error {
-	ctx := context.Background()
-	key := fmt.Sprintf("code:%s", phone)
-	return redis.Client.Set(ctx, key, code, time.Minute*5).Err()
+const codeKeyPrefix = "sms:code:"
+
+// SetCode 保存验证码，TTL 5分钟
+func SetCode(ctx context.Context, phone, code string, ttl time.Duration) error {
+	key := codeKeyPrefix + phone
+	return redis.Client.Set(ctx, key, code, ttl).Err()
 }
 
-// 取验证码
-func GetCode(phone string) (string, error) {
-	ctx := context.Background()
-	key := fmt.Sprintf("code:%s", phone)
+// GetCode 获取验证码
+func GetCode(ctx context.Context, phone string) (string, error) {
+	key := codeKeyPrefix + phone
 	return redis.Client.Get(ctx, key).Result()
 }

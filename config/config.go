@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -12,6 +13,7 @@ type Config struct {
 	Server ServerConfig `yaml:"server"`
 	Redis  RedisConfig  `yaml:"redis"`
 	MySQL  MySQLConfig  `yaml:"mysql"`
+	JWT    JWTConfig    `yaml:"jwt"`
 }
 
 type ServerConfig struct {
@@ -26,6 +28,11 @@ type RedisConfig struct {
 
 type MySQLConfig struct {
 	DSN string `yaml:"dsn"`
+}
+
+type JWTConfig struct {
+	Secret string        `yaml:"secret"`
+	Expire time.Duration `yaml:"expire"`
 }
 
 // GlobalConfig 全局配置实例

@@ -72,6 +72,10 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
 func (h *UserHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -79,14 +83,15 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.Login(
+	token, err := h.userService.Login(
 		c.Request.Context(),
 		req.Phone,
 		req.Password,
-	); err != nil {
+	)
+	if err != nil {
 		response.Fail(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	response.Success(c, "登录成功")
+	response.Success(c, LoginResponse{Token: token})
 }

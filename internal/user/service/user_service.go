@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gin-gorm-coupon-service/internal/cache"
 	"gin-gorm-coupon-service/internal/pkg/crypt"
+	"gin-gorm-coupon-service/internal/pkg/jwt"
 	"gin-gorm-coupon-service/internal/user/model"
 	"math/rand"
 	"time"
@@ -28,20 +29,25 @@ func NewUserService(userRepo UserRepo) *UserService {
 }
 
 // Login 用户登录
-func (s *UserService) Login(ctx context.Context, phone, password string) error {
+func (s *UserService) Login(ctx context.Context, phone, password string) (string, error) {
 	//查用户
 	user, err := s.userRepo.GetByPhone(ctx, phone)
 	if err != nil {
-		return fmt.Errorf("查询用户失败")
+		return "", fmt.Errorf("查询用户失败")
 	}
 	if user == nil {
-		return fmt.Errorf("用户不存在")
+		return "", fmt.Errorf("用户不存在")
 	}
 	//校验密码
 	if err := crypt.Check(user.Password, password); err != nil {
-		return fmt.Errorf("密码错误")
+		return "", fmt.Errorf("密码错误")
 	}
-	return nil
+	//生成返回jwt
+	token, err := jwt.GenerateToken(user.ID, user.Username)
+	if err != nil {
+		return "", fmt.Errorf("生成 token 失败")
+	}
+	return token, nil
 }
 
 // Register 用户注册

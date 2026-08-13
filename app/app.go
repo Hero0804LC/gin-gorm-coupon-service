@@ -2,6 +2,7 @@ package app
 
 import (
 	"gin-gorm-coupon-service/config"
+	"gin-gorm-coupon-service/internal/pkg/jwt"
 	"gin-gorm-coupon-service/internal/pkg/redis"
 	"gin-gorm-coupon-service/internal/user/handler"
 	"gin-gorm-coupon-service/internal/user/repository"
@@ -24,6 +25,7 @@ func NewApp(cfg *config.Config, db *gorm.DB) (*App, error) {
 	if err := redis.Init(); err != nil {
 		return nil, err
 	}
+	jwt.Init(cfg.JWT.Secret, cfg.JWT.Expire)
 
 	// 2. User 模块
 	userRepo := repository.NewUserRepo(db)

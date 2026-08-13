@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"strings"
 
 	"gin-gorm-coupon-service/internal/pkg/jwt"
@@ -14,6 +15,7 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		//从 Header 取 token
 		authHeader := c.GetHeader("Authorization")
+
 		if authHeader == "" {
 			response.Fail(c, 401, "未登录，请先登录")
 			c.Abort()
@@ -29,7 +31,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		tokenString := parts[1]
-
+		fmt.Println("Extracted Token:", tokenString)
 		//解析token
 		claims, err := jwt.ParseToken(tokenString)
 		if err != nil {

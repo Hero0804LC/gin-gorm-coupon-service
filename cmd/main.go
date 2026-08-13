@@ -26,12 +26,11 @@ func main() {
 	sqlDB, _ := db.DB()
 	defer sqlDB.Close()
 
-	// 3. 初始化应用（✅ 依赖注入已剥离）
-	application, err := app.NewApp(cfg, db)
+	// 3. 初始化应用
+	application, err := app.NewApp(db)
 	if err != nil {
-		log.Fatalf("app init failed: %v", err)
+		log.Fatalf("init app failed: %v", err)
 	}
-	defer application.Close()
 
 	// 4. 启动
 	go func() {

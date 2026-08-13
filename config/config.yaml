@@ -9,6 +9,6 @@ redis:
 mysql:
   dsn: "root:root@tcp(127.0.0.1:3306)/mall?charset=utf8mb4&parseTime=True&loc=Local"
 
-  jwt:
+jwt:
     secret: "mall-secret-key-change-in-prod"
-    expire: 86400s 
+    expire: 24h

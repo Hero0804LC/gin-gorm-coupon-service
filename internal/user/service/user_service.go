@@ -16,6 +16,7 @@ type UserRepo interface {
 	CreateUser(ctx context.Context, user *model.User) error
 	UserExists(ctx context.Context, username, phone string) (bool, error)
 	GetByPhone(ctx context.Context, phone string) (*model.User, error)
+	GetByID(ctx context.Context, id uint64) (*model.User, error)
 }
 
 // UserService 业务逻辑层
@@ -26,6 +27,18 @@ type UserService struct {
 // NewUserService 构造函数
 func NewUserService(userRepo UserRepo) *UserService {
 	return &UserService{userRepo: userRepo}
+}
+
+// Profile 获取当前用户信息
+func (s *UserService) Profile(ctx context.Context, userID uint64) (*model.User, error) {
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("查询用户失败")
+	}
+	if user == nil {
+		return nil, fmt.Errorf("用户不存在")
+	}
+	return user, nil
 }
 
 // Login 用户登录

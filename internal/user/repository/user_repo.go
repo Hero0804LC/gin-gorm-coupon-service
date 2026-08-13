@@ -12,6 +12,7 @@ type UserRepo interface {
 	CreateUser(ctx context.Context, user *model.User) error
 	UserExists(ctx context.Context, username, phone string) (bool, error)
 	GetByPhone(ctx context.Context, phone string) (*model.User, error)
+	GetByID(ctx context.Context, id uint64) (*model.User, error)
 }
 
 type userRepo struct {
@@ -48,6 +49,16 @@ func (r *userRepo) GetByPhone(ctx context.Context, phone string) (*model.User, e
 		Where("phone = ?", phone).
 		First(&user).Error
 
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	return &user, err
+}
+
+// GetByID 根据 ID 查用户
+func (r *userRepo) GetByID(ctx context.Context, id uint64) (*model.User, error) {
+	var user model.User
+	err := r.db.WithContext(ctx).First(&user, id).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

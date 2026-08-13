@@ -95,3 +95,31 @@ func (h *UserHandler) Login(c *gin.Context) {
 
 	response.Success(c, LoginResponse{Token: token})
 }
+
+// Profile 获取当前用户信息（需要登录）
+func (h *UserHandler) Profile(c *gin.Context) {
+	// 从中间件注入的 context 取 user_id
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		response.Fail(c, 401, "未登录")
+		return
+	}
+
+	// 类型断言（JWT 里存的是 uint64）
+	userID, ok := userIDVal.(uint64)
+	if !ok {
+		response.Fail(c, 401, "用户信息异常")
+		return
+	}
+
+	user, err := h.userService.Profile(c.Request.Context(), userID)
+	if err != nil {
+		response.Fail(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// 不返回密码
+	user.Password = ""
+
+	response.Success(c, user)
+}

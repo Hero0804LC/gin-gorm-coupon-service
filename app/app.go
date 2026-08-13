@@ -3,6 +3,7 @@ package app
 import (
 	"gin-gorm-coupon-service/config"
 	"gin-gorm-coupon-service/internal/pkg/jwt"
+	"gin-gorm-coupon-service/internal/pkg/logger"
 	"gin-gorm-coupon-service/internal/pkg/redis"
 	"gin-gorm-coupon-service/internal/user/handler"
 	"gin-gorm-coupon-service/internal/user/repository"
@@ -22,10 +23,14 @@ type App struct {
 // NewApp 初始化所有依赖
 func NewApp(cfg *config.Config, db *gorm.DB) (*App, error) {
 	// 1. 基础设施
+	//redis
 	if err := redis.Init(); err != nil {
 		return nil, err
 	}
+	//jwt
 	jwt.Init(cfg.JWT.Secret, cfg.JWT.Expire)
+	//zap
+	logger.Init()
 
 	// 2. User 模块
 	userRepo := repository.NewUserRepo(db)

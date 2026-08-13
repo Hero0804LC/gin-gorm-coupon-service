@@ -10,7 +10,7 @@ import (
 func SetupRouter(userHandler *handler.UserHandler) *gin.Engine {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
-
+	r.Use(middleware.LoggerMiddleware())
 	globalLimiter := middleware.NewTokenBucketLimiter(
 		rate.Limit(20),
 		50,

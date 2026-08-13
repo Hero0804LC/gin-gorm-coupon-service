@@ -1,0 +1,10 @@
+logs/
+
+*.log
+.idea/
+
+*.iml
+
+*.ipr
+
+*.iws

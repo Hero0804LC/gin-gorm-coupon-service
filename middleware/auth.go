@@ -30,10 +30,23 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		tokenString := parts[1]
 
-		//token
+		//解析token
 		claims, err := jwt.ParseToken(tokenString)
 		if err != nil {
 			response.Fail(c, 401, err.Error())
+			c.Abort()
+			return
+		}
+
+		//检查黑名单
+		blacklisted, err := jwt.IsBlacklisted(c.Request.Context(), tokenString)
+		if err != nil {
+			response.Fail(c, 500, "系统错误")
+			c.Abort()
+			return
+		}
+		if blacklisted {
+			response.Fail(c, 401, "token 已失效，请重新登录")
 			c.Abort()
 			return
 		}

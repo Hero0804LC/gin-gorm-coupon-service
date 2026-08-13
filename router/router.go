@@ -32,6 +32,7 @@ func SetupRouter(userHandler *handler.UserHandler) *gin.Engine {
 	authGroup.Use(middleware.AuthMiddleware())
 	{
 		authGroup.GET("/profile", userHandler.Profile) //获取用户信息
+		authGroup.POST("/logout", userHandler.Logout)  //退出登录
 	}
 
 	return r

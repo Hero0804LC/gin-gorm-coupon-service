@@ -1,7 +1,9 @@
 package jwt
 
 import (
+	"context"
 	"errors"
+	"gin-gorm-coupon-service/internal/pkg/redis"
 	"github.com/golang-jwt/jwt/v5"
 	"time"
 )
@@ -25,6 +27,9 @@ type Config struct {
 }
 
 var cfg Config
+
+// 黑名单
+const blacklistPrefix = "jwt:blacklist:"
 
 // Init 初始化
 func Init(secret string, expire time.Duration) {
@@ -68,4 +73,29 @@ func ParseToken(tokenString string) (*Claims, error) {
 	}
 
 	return nil, ErrTokenInvalid
+}
+
+// AddToBlacklist 将 token 加入黑名单
+// tokenString: 原始 token 字符串
+// exp: token 的过期时间（从 claims 里取）
+func AddToBlacklist(ctx context.Context, tokenString string, exp time.Time) error {
+	key := blacklistPrefix + tokenString
+
+	// TTL = token 剩余有效期
+	ttl := time.Until(exp)
+	if ttl <= 0 {
+		return nil // 已经过期，不用加
+	}
+
+	return redis.Client.Set(ctx, key, "1", ttl).Err()
+}
+
+// IsBlacklisted 检查 token 是否在黑名单中
+func IsBlacklisted(ctx context.Context, tokenString string) (bool, error) {
+	key := blacklistPrefix + tokenString
+	exists, err := redis.Client.Exists(ctx, key).Result()
+	if err != nil {
+		return false, err
+	}
+	return exists > 0, nil
 }

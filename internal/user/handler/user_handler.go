@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"gin-gorm-coupon-service/internal/pkg/jwt"
 	"gin-gorm-coupon-service/internal/user/service"
 
 	"gin-gorm-coupon-service/internal/pkg/response"
@@ -122,4 +123,37 @@ func (h *UserHandler) Profile(c *gin.Context) {
 	user.Password = ""
 
 	response.Success(c, user)
+}
+
+type LogoutRequest struct {
+	AccessToken string `json:"access_token" binding:"required"`
+}
+
+// Logout 退出登录
+func (h *UserHandler) Logout(c *gin.Context) {
+	var req LogoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Fail(c, http.StatusBadRequest, "参数错误")
+		return
+	}
+
+	// token 拿到过期时间
+	claims, err := jwt.ParseToken(req.AccessToken)
+	if err != nil {
+		// token 已经无效/过期，直接算退出成功
+		response.Success(c, "退出成功")
+		return
+	}
+
+	//加入黑名单
+	if err := jwt.AddToBlacklist(
+		c.Request.Context(),
+		req.AccessToken,
+		claims.ExpiresAt.Time,
+	); err != nil {
+		response.Fail(c, http.StatusInternalServerError, "退出失败")
+		return
+	}
+
+	response.Success(c, "退出成功")
 }

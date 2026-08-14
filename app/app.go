@@ -23,6 +23,11 @@ import (
 	cartRepo "gin-gorm-coupon-service/internal/cart/repository"
 	cartService "gin-gorm-coupon-service/internal/cart/service"
 
+	//订单模块
+	orderHandler "gin-gorm-coupon-service/internal/order/handler"
+	orderRepo "gin-gorm-coupon-service/internal/order/repository"
+	orderService "gin-gorm-coupon-service/internal/order/service"
+
 	"gin-gorm-coupon-service/router"
 
 	"gorm.io/gorm"
@@ -58,11 +63,17 @@ func NewApp(db *gorm.DB) (*App, error) {
 	cartSvc := cartService.NewCartService(cartRepo, productRepo)
 	cartHandler := cartHandler.NewCartHandler(cartSvc)
 
+	//订单模块
+	orderRepo := orderRepo.NewOrderRepo(db)
+	orderSvc := orderService.NewOrderService(orderRepo, productRepo, cartRepo)
+	orderHandler := orderHandler.NewOrderHandler(orderSvc)
+
 	// Router（先创建引擎 → 再逐个注册模块）
 	r := router.SetupRouter()
 	router.RegisterUserRoutes(r, userHandler)
 	router.RegisterProductRoutes(r, productHandler)
 	router.RegisterCartRoutes(r, cartHandler)
+	router.RegisterOrderRoutes(r, orderHandler)
 
 	return &App{
 		Router: r,

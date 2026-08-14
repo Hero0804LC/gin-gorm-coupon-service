@@ -13,8 +13,8 @@ func RegisterCartRoutes(r *gin.Engine, h *handler.CartHandler) {
 	{
 		cartGroup.POST("/add", h.AddToCart)
 		cartGroup.GET("/list", h.List)
-		cartGroup.POST("/:id", h.UpdateQuantity)
-		cartGroup.POST("/:id", h.Delete)
-		cartGroup.POST("/clear", h.Clear)
+		cartGroup.PUT("/:id", h.UpdateQuantity)
+		cartGroup.DELETE("/:id", h.Delete)
+		cartGroup.DELETE("/clear", h.Clear)
 	}
 }

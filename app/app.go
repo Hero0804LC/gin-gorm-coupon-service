@@ -1,35 +1,46 @@
 package app
 
 import (
+	"context"
 	"fmt"
+
 	"gin-gorm-coupon-service/config"
 	"gin-gorm-coupon-service/internal/pkg/jwt"
-	"github.com/gin-gonic/gin"
-
 	"gin-gorm-coupon-service/internal/pkg/logger"
 	"gin-gorm-coupon-service/internal/pkg/redis"
-	// 用户模块
-	userHandler "gin-gorm-coupon-service/internal/user/handler"
-	userRepo "gin-gorm-coupon-service/internal/user/repository"
-	userService "gin-gorm-coupon-service/internal/user/service"
-
-	// 商品模块
-	productHandler "gin-gorm-coupon-service/internal/product/handler"
-	productRepo "gin-gorm-coupon-service/internal/product/repository"
-	productService "gin-gorm-coupon-service/internal/product/service"
-
-	//购物车模块
-	cartHandler "gin-gorm-coupon-service/internal/cart/handler"
-	cartRepo "gin-gorm-coupon-service/internal/cart/repository"
-	cartService "gin-gorm-coupon-service/internal/cart/service"
-
-	//订单模块
-	orderHandler "gin-gorm-coupon-service/internal/order/handler"
-	orderRepo "gin-gorm-coupon-service/internal/order/repository"
-	orderService "gin-gorm-coupon-service/internal/order/service"
-
+	"gin-gorm-coupon-service/internal/seckill/async"
 	"gin-gorm-coupon-service/router"
 
+	// ========== User 模块 ==========
+	userHandler "gin-gorm-coupon-service/internal/user/handler"
+	userRepo "gin-gorm-coupon-service/internal/user/repository"
+	userSvc "gin-gorm-coupon-service/internal/user/service"
+
+	// ========== Product 模块 ==========
+	productHandler "gin-gorm-coupon-service/internal/product/handler"
+	productRepo "gin-gorm-coupon-service/internal/product/repository"
+	productSvc "gin-gorm-coupon-service/internal/product/service"
+
+	// ========== Cart 模块 ==========
+	cartHandler "gin-gorm-coupon-service/internal/cart/handler"
+	cartRepo "gin-gorm-coupon-service/internal/cart/repository"
+	cartSvc "gin-gorm-coupon-service/internal/cart/service"
+
+	// ========== Order 模块 ==========
+	orderHandler "gin-gorm-coupon-service/internal/order/handler"
+	orderRepo "gin-gorm-coupon-service/internal/order/repository"
+	orderSvc "gin-gorm-coupon-service/internal/order/service"
+
+	// ========== Coupon 模块 ==========
+	couponHandler "gin-gorm-coupon-service/internal/coupon/handler"
+	couponRepo "gin-gorm-coupon-service/internal/coupon/repository"
+	couponSvc "gin-gorm-coupon-service/internal/coupon/service"
+
+	// ========== Seckill 模块 ==========
+	seckillHandler "gin-gorm-coupon-service/internal/seckill/handler"
+	seckillSvc "gin-gorm-coupon-service/internal/seckill/service"
+
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -39,41 +50,63 @@ type App struct {
 }
 
 func NewApp(db *gorm.DB) (*App, error) {
-
-	//初始化
+	// ========== 全局初始化 ==========
 	logger.Init()
 	if err := redis.Init(); err != nil {
 		return nil, fmt.Errorf("redis init failed: %w", err)
 	}
-
 	jwt.Init(config.Get().JWT.Secret, config.Get().JWT.Expire)
 
-	//User 模块
-	userRepo := userRepo.NewUserRepo(db)
-	userSvc := userService.NewUserService(userRepo)
-	userHandler := userHandler.NewUserHandler(userSvc)
+	// ========== User ==========
+	userRepoInst := userRepo.NewUserRepo(db)
+	userSvcInst := userSvc.NewUserService(userRepoInst)
+	userHandlerInst := userHandler.NewUserHandler(userSvcInst)
 
-	//Product 模块
-	productRepo := productRepo.NewProductRepo(db)
-	productSvc := productService.NewProductService(productRepo)
-	productHandler := productHandler.NewProductHandler(productSvc)
+	// ========== Product ==========
+	productRepoInst := productRepo.NewProductRepo(db)
+	productSvcInst := productSvc.NewProductService(productRepoInst)
+	productHandlerInst := productHandler.NewProductHandler(productSvcInst)
 
-	//Cart 模块
-	cartRepo := cartRepo.NewCartRepo(db)
-	cartSvc := cartService.NewCartService(cartRepo, productRepo)
-	cartHandler := cartHandler.NewCartHandler(cartSvc)
+	// ========== Cart ==========
+	cartRepoInst := cartRepo.NewCartRepo(db)
+	cartSvcInst := cartSvc.NewCartService(cartRepoInst, productRepoInst)
+	cartHandlerInst := cartHandler.NewCartHandler(cartSvcInst)
 
-	//订单模块
-	orderRepo := orderRepo.NewOrderRepo(db)
-	orderSvc := orderService.NewOrderService(orderRepo, productRepo, cartRepo)
-	orderHandler := orderHandler.NewOrderHandler(orderSvc)
+	// ========== Order ==========
+	orderRepoInst := orderRepo.NewOrderRepo(db)
+	orderSvcInst := orderSvc.NewOrderService(orderRepoInst, productRepoInst, cartRepoInst)
+	orderHandlerInst := orderHandler.NewOrderHandler(orderSvcInst)
 
-	// Router（先创建引擎 → 再逐个注册模块）
+	// ========== Coupon ==========
+	couponRepoInst := couponRepo.NewCouponRepo(db)
+	userCouponRepoInst := couponRepo.NewUserCouponRepo(db)
+	couponSvcInst := couponSvc.NewCouponService(couponRepoInst, userCouponRepoInst)
+	couponHandlerInst := couponHandler.NewCouponHandler(couponSvcInst)
+
+	// ========== Seckill ==========
+	seckillSvcInst := seckillSvc.NewSeckillService(
+		db,
+		couponRepoInst,
+		orderRepoInst,
+		userCouponRepoInst,
+	)
+
+	seckillHandlerInst := seckillHandler.NewSeckillHandler(seckillSvcInst)
+
+	worker := async.NewWorker(async.TaskChan, seckillSvcInst)
+	worker.Start(context.Background())
+
+	// ========== Router ==========
 	r := router.SetupRouter()
-	router.RegisterUserRoutes(r, userHandler)
-	router.RegisterProductRoutes(r, productHandler)
-	router.RegisterCartRoutes(r, cartHandler)
-	router.RegisterOrderRoutes(r, orderHandler)
+	router.RegisterUserRoutes(r, userHandlerInst)
+	router.RegisterProductRoutes(r, productHandlerInst)
+	router.RegisterCartRoutes(r, cartHandlerInst)
+	router.RegisterOrderRoutes(r, orderHandlerInst)
+	router.RegisterCouponRoutes(r, couponHandlerInst)
+	router.RegisterSeckillRoutes(r, seckillHandlerInst)
+
+	// Worker 启动（不阻塞 HTTP）
+	worker.Start(context.Background())
 
 	return &App{
 		Router: r,
